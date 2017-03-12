@@ -1,13 +1,13 @@
-function ebma(R)
+function [motionVectors,predictedFrame] = ebma(anchor, target, R)
     % Referenced psuedo code at: http://s16.postimg.org/mgysv37ur/EBMA_pseudocode.jpg
     %R = 32; % window size +/- R
     N = 16; % block size NxN   
-    anchor = 'train02.tif';
-    target = 'train01.tif';
 
     % Read in frames
-    anchorFrame = imread(anchor);
-    targetFrame = imread(target);
+    %anchorFrame = imread(anchor);
+    %targetFrame = imread(target);
+    anchorFrame = anchor;
+    targetFrame = target;
     
     % Get image dimensions
     [height, width] = size(anchorFrame);
@@ -51,6 +51,8 @@ function ebma(R)
             v(iblk, jblk) = dy;
         end
     end
+    
+    motionVectors = [x, y, u, v];
     
     errorFrame = abs(double(predictedFrame)-double(anchorFrame));
     
