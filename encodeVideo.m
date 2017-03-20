@@ -1,4 +1,4 @@
-function encodeVideo( in_filename )
+function [encodedFrames] = encodeVideo( in_filename )
 %Encodes a video using the block matching algorithm in ebma.m
     R = 32;
     
@@ -24,14 +24,10 @@ function encodeVideo( in_filename )
             switch(i) %IBPBPBIBPBPB...
                 case 1
                     %I frame comes in and is run through DCT
-                    %It is then Quantized and sent to VLC
+                    %It is then Quantized
+                    %push frame to output
                     frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
-                    %push frame to output(From VLC)
-
-                    %encoded to drop a lot of 0 bits, however, encoding of
-                    %preceeding zeroes needs to be encoded for the reverse
-                    %process in the decoder
-
+                    encodedFrames = frame_q;
                     if exist('bFrame','var')
                        processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R); 
                     end
@@ -44,8 +40,9 @@ function encodeVideo( in_filename )
                     [motion(:,:,j),frame(:,:,j)] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
                     %push frame to output
                     %DCT and Quantization
-                    frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
+                    frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
+                    encodedFrames = frame_q;
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
                 case 4
@@ -55,8 +52,9 @@ function encodeVideo( in_filename )
                     [motion(:,:,j),frame(:,:,j)] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
                     %push frame to output
                     %DCT and Quantization
-                    frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
+                    frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
+                    encodedFrames = frame_q;
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
                 case 6
@@ -82,4 +80,5 @@ function processBFrame(bFrame, bAnchor, aAnchor, q, R)
     %push frame to output
     %DCT and Quantization
     frame_q = blkproc(double(frame),[8,8],'round(dct2(x)./P1).*P1',q);
+    encodedFrames = frame_q;
 end
