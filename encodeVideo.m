@@ -1,4 +1,4 @@
-function [encodedFrames] = encodeVideo( in_filename )
+function encodeVideo( in_filename )
 %Encodes a video using the block matching algorithm in ebma.m
     R = 32;
     
@@ -11,6 +11,13 @@ function [encodedFrames] = encodeVideo( in_filename )
             24  35  55  64  81 104 113  92; 
             49  64  78  87 103 121 120 101; 
             72  92  95  98 112 100 103  99]; 
+    %output data
+    fileName = 'encodeOut.bin';
+    %create empty file for appending
+    f = fopen(fileName, 'w');
+    fclose(f);
+
+    wframe = @(block_struct) writeFrame(block_struct.data, fileName);
     
     if nargin < 1
         in_filename = 'flower.mpg'; 
@@ -24,10 +31,9 @@ function [encodedFrames] = encodeVideo( in_filename )
             switch(i) %IBPBPBIBPBPB...
                 case 1
                     %I frame comes in and is run through DCT
-                    %It is then Quantized
                     %push frame to output
                     frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
-                    encodedFrames = frame_q;
+                    blockproc(frame_q(:,:,j), [8,8], wframe);
                     if exist('bFrame','var')
                        processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R); 
                     end
@@ -42,7 +48,7 @@ function [encodedFrames] = encodeVideo( in_filename )
                     %DCT and Quantization
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
                     frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
-                    encodedFrames = frame_q;
+                    blockproc(frame_q(:,:,j), [8,8], wframe);
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
                 case 4
@@ -54,7 +60,7 @@ function [encodedFrames] = encodeVideo( in_filename )
                     %DCT and Quantization
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
                     frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
-                    encodedFrames = frame_q;
+                    blockproc(frame_q(:,:,j), [8,8], wframe);
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
                 case 6
@@ -80,5 +86,32 @@ function processBFrame(bFrame, bAnchor, aAnchor, q, R)
     %push frame to output
     %DCT and Quantization
     frame_q = blkproc(double(frame),[8,8],'round(dct2(x)./P1).*P1',q);
-    encodedFrames = frame_q;
+    %blockproc(frame_q(:,:,j), [8,8], wframe);
+end
+
+% Used with blockproc to encode and write blocks of the frame to a file
+function writeFrame(data, File_Name) 
+    %http://stackoverflow.com/questions/3024939/matrix-zigzag-reordering
+    ind = reshape(1:numel(data), size(data));
+    ind = fliplr(spdiags(fliplr(ind)));
+    ind(:,1:2:end) = flipud(ind(:,1:2:end));
+    ind(ind==0) = [];
+
+    coef = data(ind);
+    encoded = coef(1); %DC Coefficient
+    run = 0;
+    for i = 2:numel(coef)
+        if coef(i) == 0
+            run = run + 1;
+        else
+            encoded = [encoded, run, coef(i)];
+            run = 0;
+        end
+    end
+    
+    output = int16([encoded, 0, 0].'); %00 is EOB
+    
+    fileID = fopen(File_Name, 'a'); %append
+    fwrite(fileID, output, 'int16');
+    fclose(fileID);
 end

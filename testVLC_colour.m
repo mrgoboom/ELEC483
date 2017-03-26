@@ -21,7 +21,7 @@ fileName = 'encodeTest.bin';
 f = fopen(fileName, 'w');
 fclose(f);
 
-zz = @(block_struct) zigzagScan(block_struct.data, fileName);
+zz = @(block_struct) writeFrame(block_struct.data, fileName);
 
 for i = 1:3
     blockproc(frm_q(:,:,i), [8,8], zz);
@@ -41,7 +41,7 @@ end
 
 %blockproc appear to do tl corner, tr, br, then continues on top row
 
-function zigzagScan(data, File_Name) 
+function writeFrame(data, File_Name) 
     %http://stackoverflow.com/questions/3024939/matrix-zigzag-reordering
     ind = reshape(1:numel(data), size(data));
     ind = fliplr(spdiags(fliplr(ind)));
