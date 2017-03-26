@@ -13,11 +13,17 @@ q = [16  11  10  16  24  40  51  61;
 frm = imread('lena.tif');
 
 frm_q = blkproc(frm,[8,8],'round(dct2(x)./P1).*P1',q);
-zz = @(block_struct) zigzagScan(block_struct.data);
-coef = blockproc(frm_q, [8,8], zz);
+%output data
+fileName = 'encodeTest.bin';
+%create empty file for appending
+f = fopen(fileName, 'w');
+fclose(f);
+
+zz = @(block_struct) zigzagScan(block_struct.data, fileName);
+blockproc(frm_q, [8,8], zz);
 
 %ind = reshape(1:numel(frm_q), size(frm_q));
-function [coef] = zigzagScan(data) 
+function zigzagScan(data, File_Name) 
     %http://stackoverflow.com/questions/3024939/matrix-zigzag-reordering
     ind = reshape(1:numel(data), size(data));
     ind = fliplr(spdiags(fliplr(ind)));
@@ -25,4 +31,20 @@ function [coef] = zigzagScan(data)
     ind(ind==0) = [];
 
     coef = data(ind);
+    encoded = coef(1); %DC Coefficient
+    run = 0;
+    for i = 2:numel(coef)
+        if coef(i) == 0
+            run = run + 1;
+        else
+            encoded = [encoded, run, coef(i)];
+            run = 0;
+        end
+    end
+    
+    output = int16([encoded, 0, 0]); %00 is EOB
+    
+    fileID = fopen(File_Name, 'a'); %append
+    fwrite(fileID, output, 'int16');
+    fclose(fileID);
 end
