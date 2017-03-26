@@ -28,22 +28,21 @@ function encodeVideo( in_filename )
         frame = readFrame(v);
         for j = 1:3
         % IBBPBBP is used in textbook notes, may be worth considering
-            switch(i) %IBPBPBIBPBPB...
+            switch(i) %IBPBPIBPBPI...
                 case 1
                     %I frame comes in and is run through DCT
                     %push frame to output
                     frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
                     blockproc(frame_q(:,:,j), [8,8], wframe);
-                    if exist('bFrame','var')
-                       processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R); 
-                    end
                     %Save I frame becomes anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
                 case 2
                     %B frame saved for future processing
                     bFrame(:,:,j) = frame(:,:,j);
                 case 3
-                    [motion(:,:,j),frame(:,:,j)] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
+                    [motion(:,:,j),pframe] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
+                    error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
+                    frame(:,:,j) = pframe;
                     %push frame to output
                     %DCT and Quantization
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
@@ -55,7 +54,9 @@ function encodeVideo( in_filename )
                     %B frame saved for future processing
                     bFrame(:,:,j) = frame(:,:,j);
                 case 5
-                    [motion(:,:,j),frame(:,:,j)] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
+                    [motion(:,:,j),pframe] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
+                    error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
+                    frame(:,:,j) = pframe;
                     %push frame to output
                     %DCT and Quantization
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
@@ -63,14 +64,9 @@ function encodeVideo( in_filename )
                     blockproc(frame_q(:,:,j), [8,8], wframe);
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
-                case 6
-                    %B frame saved
-                    %Might be good idea to end on a P frame so the next is I
-                    %and previous processing can be ignored
-                    bFrame(:,:,j) = frame(:,:,j);
             end
         end
-        if i < 6
+        if i < 5
             i = i + 1;
         else
             i = 1;
@@ -82,6 +78,7 @@ function processBFrame(bFrame, bAnchor, aAnchor, q, R)
     [bmotion,bPredicted] = ebma(bAnchor, bFrame, R);
     [amotion,aPredicted] = ebma(aAnchor, bFrame, R);
     frame = (aPredicted + bPredicted)/2;
+    error = abs(double(frame)-double(bFrame));
     motion = (amotion + bmotion)/2;
     %push frame to output
     %DCT and Quantization
