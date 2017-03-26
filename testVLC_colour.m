@@ -38,6 +38,44 @@ while ~feof(fid)
         readData(k) = current;
     end
 end
+% reconstruct DCT coefficient for the block
+i = 1;
+offset = 0;
+frame = [];
+for l = 1:64
+    frameRow = [];
+    for k = 1:64
+        flag = 0;
+        firstZero = 0;
+        j = 1;
+        blockVector = zeros(1,64);
+        while flag ~= 1
+            if (readData(i) == 0)
+                if (firstZero == 1)
+                    flag = 1;
+                    i = i +1;
+                else
+                    firstZero = 1;
+                    offset = i;
+                    i = i + 1;
+                end
+            else
+                if ( mod(i+offset,2) == 0)
+                    j = j + readData(i);
+                    i = i + 1;
+                else
+                    blockVector(j) = readData(i);
+                    i = i + 1;
+                    j = j + 1;
+                end
+            end
+        end
+
+        block = izigzag(blockVector,8,8);
+        frameRow = [frameRow, block];
+    end
+    frame = [frame; frameRow];
+end
 
 %blockproc appear to do tl corner, tr, br, then continues on top row
 
