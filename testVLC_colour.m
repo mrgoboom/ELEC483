@@ -10,9 +10,11 @@ q = [16  11  10  16  24  40  51  61;
      49  64  78  87 103 121 120 101; 
      72  92  95  98 112 100 103  99];
 
-frm = imread('lena.tif');
+frm = imread('fruits.tif');
 
-frm_q = blkproc(frm,[8,8],'round(dct2(x)./P1).*P1',q);
+for i = 1:3
+    frm_q(:,:,i) = blkproc(frm(:,:,i),[8,8],'round(dct2(x)./P1).*P1',q);
+end
 %output data
 fileName = 'encodeTest.bin';
 %create empty file for appending
@@ -20,7 +22,10 @@ f = fopen(fileName, 'w');
 fclose(f);
 
 zz = @(block_struct) zigzagScan(block_struct.data, fileName);
-blockproc(frm_q, [8,8], zz);
+
+for i = 1:3
+    blockproc(frm_q(:,:,i), [8,8], zz);
+end
 
 %read created file
 
