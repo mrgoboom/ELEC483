@@ -3,11 +3,17 @@ function [motionVectors, predictedFrame] = ebma(anchor, target, R)
     %R = 32; % window size +/- R
     N = 16; % block size NxN   
 
-    % Read in frames
-    %anchorFrame = imread(anchor);
-    %targetFrame = imread(target);
-    anchorFrame = anchor;
-    targetFrame = target;
+    if nargin < 3
+        anchor = 'train01.tif';
+        target = 'train02.tif';
+        R = 7;
+        % Read in frames
+        anchorFrame = imread(anchor);
+        targetFrame = imread(target);
+    else
+        anchorFrame = anchor;
+        targetFrame = target;
+    end
     
     % Get image dimensions
     [height, width] = size(anchorFrame);
@@ -53,5 +59,4 @@ function [motionVectors, predictedFrame] = ebma(anchor, target, R)
     end
     
     motionVectors = [x, y, u, v];
-    
 end
