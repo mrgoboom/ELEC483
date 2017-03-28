@@ -43,7 +43,7 @@ function encodeVideo( in_filename )
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
-                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
+                    [errorb(:,:,j), motionb(:,:,j)] = processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
                     %DCT and Quantization
                     %write P frame error to file
                     frame_q(:,:,j) = blkproc(double(error(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
@@ -62,7 +62,7 @@ function encodeVideo( in_filename )
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
-                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
+                    [errorb(:,:,j), motionb(:,:,j)] = processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
                     %DCT and Quantization
                     processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
                     frame_q(:,:,j) = blkproc(double(error(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
@@ -75,6 +75,34 @@ function encodeVideo( in_filename )
                     anchorFrame(:,:,j) = frame(:,:,j);
             end
         end
+        
+        %Debug
+        %figure;
+        %imshow(frame)
+        
+        %Decoding and write to video file
+        
+        %create Video Writer
+        decodedVideo = VideoWriter('decoded','Uncompressed AVI');
+        
+        switch(i) %IBPBPIBPBPI...
+            case 1
+                %I Frame
+                decodeVideo(frame_q, decodedVideo, 'I'); 
+                anchor = frame_q;
+            case 3
+                %B Frame
+                decodeVideo(errorb, decodedVideo, 'B', anchor, motionb);
+                %P Frame
+                decodeVideo(frame_q, decodedVideo, 'P', anchor, motion);
+                anchor = frame_q;
+            case 5
+                %B Frame
+                decodeVideo(errorb, decodedVideo, 'B', anchor, motionb);
+                %P Frame
+                decodeVideo(frame_q, decodedVideo, 'P', anchor, motion);
+        end
+       
         if i < 5
             i = i + 1;
         else
@@ -83,7 +111,7 @@ function encodeVideo( in_filename )
     end
 end
 
-function processBFrame(bFrame, bAnchor, aAnchor, q, R, file_name)
+function [frame_q, motion] = processBFrame(bFrame, bAnchor, aAnchor, q, R, file_name)
     [bmotion,bPredicted] = ebma(bAnchor, bFrame, R);
     [amotion,aPredicted] = ebma(aAnchor, bFrame, R);
     frame = (aPredicted + bPredicted)/2;
