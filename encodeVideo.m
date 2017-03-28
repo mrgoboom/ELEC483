@@ -27,7 +27,6 @@ function encodeVideo( in_filename )
     while hasFrame(v)
         frame = readFrame(v);
         for j = 1:3
-        % IBBPBBP is used in textbook notes, may be worth considering
             switch(i) %IBPBPIBPBPI...
                 case 1
                     %I frame comes in and is run through DCT
@@ -44,10 +43,15 @@ function encodeVideo( in_filename )
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
+                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
                     %DCT and Quantization
-                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
-                    frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
+                    %write P frame error to file
+                    frame_q(:,:,j) = blkproc(double(error(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
                     blockproc(frame_q(:,:,j), [8,8], wframe);
+                    %write P frame motion vectors
+                    fid = fopen(fileName, 'a');
+                    fwrite(fid, uint16(motion(:,:,j)));
+                    fclose(fid);
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
                 case 4
@@ -58,10 +62,15 @@ function encodeVideo( in_filename )
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
+                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
                     %DCT and Quantization
-                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R);
-                    frame_q(:,:,j) = blkproc(double(frame(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
+                    processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
+                    frame_q(:,:,j) = blkproc(double(error(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
                     blockproc(frame_q(:,:,j), [8,8], wframe);
+                    %write P frame motion vectors
+                    fid = fopen(fileName, 'a');
+                    fwrite(fid, uint16(motion(:,:,j)));
+                    fclose(fid);
                     %P frame becomes new anchor
                     anchorFrame(:,:,j) = frame(:,:,j);
             end
@@ -74,16 +83,22 @@ function encodeVideo( in_filename )
     end
 end
 
-function processBFrame(bFrame, bAnchor, aAnchor, q, R)
+function processBFrame(bFrame, bAnchor, aAnchor, q, R, file_name)
     [bmotion,bPredicted] = ebma(bAnchor, bFrame, R);
     [amotion,aPredicted] = ebma(aAnchor, bFrame, R);
     frame = (aPredicted + bPredicted)/2;
     error = abs(double(frame)-double(bFrame));
     motion = (amotion + bmotion)/2;
     %push frame to output
+    wframe = @(block_struct) writeFrame(block_struct.data, file_name);
     %DCT and Quantization
-    frame_q = blkproc(double(frame),[8,8],'round(dct2(x)./P1).*P1',q);
-    %blockproc(frame_q(:,:,j), [8,8], wframe);
+    %write error frame
+    frame_q = blkproc(double(error),[8,8],'round(dct2(x)./P1).*P1',q);
+    blockproc(frame_q, [8,8], wframe);
+    %write motion vectors
+    fid = fopen(file_name, 'a');
+    fwrite(fid, uint16(motion));
+    fclose(fid);
 end
 
 % Used with blockproc to encode and write blocks of the frame to a file
