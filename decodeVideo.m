@@ -51,14 +51,14 @@ function decodeVideo( encodedFrame, video_writer, frameType, anchorFrame, motion
             end
     end
     %debug code
-    figure;
-    imshow(uint8(decodedFrame))
+    %figure;
+    %imshow(uint8(decodedFrame))
     %open video for writing
-    open(video_writer);
+    %open(video_writer);
     %write frame to video file
     writeVideo(video_writer,uint8(decodedFrame));
     %close the video file
-    close(video_writer);
+    %close(video_writer);
     
 end
 

@@ -1,6 +1,7 @@
 function encodeVideo( in_filename )
 %Encodes a video using the block matching algorithm in ebma.m
-    R = 32;
+    %tic;
+    R = 8;
     
     %JPEG standard quantization matrix
     q = [   16  11  10  16  24  40  51  61; 
@@ -16,6 +17,9 @@ function encodeVideo( in_filename )
     %create empty file for appending
     f = fopen(fileName, 'w');
     fclose(f);
+    
+    decodedVideo = VideoWriter('decoded','Uncompressed AVI');
+    open(decodedVideo);
 
     wframe = @(block_struct) writeFrame(block_struct.data, fileName);
     
@@ -24,6 +28,7 @@ function encodeVideo( in_filename )
     end
     v = VideoReader(in_filename);
     i = 1;
+    algTime = [];
     while hasFrame(v)
         frame = readFrame(v);
         for j = 1:3
@@ -39,7 +44,9 @@ function encodeVideo( in_filename )
                     %B frame saved for future processing
                     bFrame(:,:,j) = frame(:,:,j);
                 case 3
-                    [motion(:,:,j),pframe] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
+                    tic;
+                    [motion(:,:,j),pframe] = diamondSearch(anchorFrame(:,:,j), frame(:,:,j), R);
+                    algTime = [algTime, toc];
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
@@ -58,7 +65,9 @@ function encodeVideo( in_filename )
                     %B frame saved for future processing
                     bFrame(:,:,j) = frame(:,:,j);
                 case 5
-                    [motion(:,:,j),pframe] = ebma(anchorFrame(:,:,j), frame(:,:,j), R);
+                    tic;
+                    [motion(:,:,j),pframe] = diamondSearch(anchorFrame(:,:,j), frame(:,:,j), R);
+                    algTime = [algTime, toc];
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
@@ -83,7 +92,6 @@ function encodeVideo( in_filename )
         %Decoding and write to video file
         
         %create Video Writer
-        decodedVideo = VideoWriter('decoded','Uncompressed AVI');
         
         switch(i) %IBPBPIBPBPI...
             case 1
@@ -109,11 +117,14 @@ function encodeVideo( in_filename )
             i = 1;
         end
     end
+    close(decodedVideo);
+    %toc
+    mean(algTime)
 end
 
 function [frame_q, motion] = processBFrame(bFrame, bAnchor, aAnchor, q, R, file_name)
-    [bmotion,bPredicted] = ebma(bAnchor, bFrame, R);
-    [amotion,aPredicted] = ebma(aAnchor, bFrame, R);
+    [bmotion,bPredicted] = diamondSearch(bAnchor, bFrame, R);
+    [amotion,aPredicted] = diamondSearch(aAnchor, bFrame, R);
     frame = (aPredicted + bPredicted)/2;
     error = abs(double(frame)-double(bFrame));
     motion = (amotion + bmotion)/2;
