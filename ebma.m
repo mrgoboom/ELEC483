@@ -1,13 +1,19 @@
-function ebma(R)
+function [motionVectors, predictedFrame] = ebma(anchor, target, R)
     % Referenced psuedo code at: http://s16.postimg.org/mgysv37ur/EBMA_pseudocode.jpg
     %R = 32; % window size +/- R
     N = 16; % block size NxN   
-    anchor = 'train02.tif';
-    target = 'train01.tif';
 
-    % Read in frames
-    anchorFrame = imread(anchor);
-    targetFrame = imread(target);
+    if nargin < 3
+        anchor = 'train01.tif';
+        target = 'train02.tif';
+        R = 7;
+        % Read in frames
+        anchorFrame = imread(anchor);
+        targetFrame = imread(target);
+    else
+        anchorFrame = anchor;
+        targetFrame = target;
+    end
     
     % Get image dimensions
     [height, width] = size(anchorFrame);
@@ -52,28 +58,5 @@ function ebma(R)
         end
     end
     
-    errorFrame = abs(double(predictedFrame)-double(anchorFrame));
-    
-    % render out images
-    figure(1)
-    imshow(anchorFrame)
-    title(sprintf('Anchor Frame \"%s\"',anchor))
-    
-    figure(2)
-    imshow(targetFrame)
-    title(sprintf('Target Frame \"%s\"',target))
-    
-    figure(3)
-    imshow(predictedFrame)
-    title(sprintf('Predicted Frame, PSNR = %.4f, %d x %d Window', psnr(predictedFrame,anchorFrame),R,R))
-    
-    figure(4)
-    imshow(uint8(errorFrame))
-    title(sprintf('Error Frame, %d x %d Window',R,R))
-    
-    figure(5)
-    quiver(x,y,u,v)
-    axis ij
-    axis([1 width 1 height])
-    title(sprintf('Motion Vectors, %d x %d Window',R,R))
+    motionVectors = [x, y, u, v];
 end
