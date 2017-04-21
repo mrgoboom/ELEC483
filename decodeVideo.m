@@ -1,4 +1,4 @@
-function decodeVideo( encodedFrame, video_writer, frameType, anchorFrame, motionVectors )
+function [decodedFrame] = decodeVideo( encodedFrame, video_writer, frameType, anchorFrame, motionVectors )
     %Run Inverse DCT on each frame and construct video file
     %This is just a skeleton of the process, will need correct syntax for
     %indexing through every frame of the encoded file
@@ -20,13 +20,13 @@ function decodeVideo( encodedFrame, video_writer, frameType, anchorFrame, motion
                 for j = 1:3
                     errorFrame(:,:,j) = blkproc(encodedFrame(:,:,j),[8,8],'idct2');
                 end
-                %IDCT anchor frame
-                for j = 1:3
-                    anchor(:,:,j) = blkproc(anchorFrame(:,:,j),[8,8],'idct2');
-                end
+%                 %IDCT anchor frame
+%                 for j = 1:3
+%                     anchor(:,:,j) = blkproc(anchorFrame(:,:,j),[8,8],'idct2');
+%                 end
                 %Rebuild the P frame
                 for j = 1:3
-                    decodedFrame(:,:,j) = rebuild(anchor(:,:,j), errorFrame(:,:,j), motionVectors(:,:,j));
+                    decodedFrame(:,:,j) = rebuild(anchorFrame(:,:,j), errorFrame(:,:,j), motionVectors(:,:,j));
                 end
             else
                 error('Need Anchor and Motion Vector arguments for P frame');
@@ -38,13 +38,13 @@ function decodeVideo( encodedFrame, video_writer, frameType, anchorFrame, motion
                 for j = 1:3
                     errorFrame(:,:,j) = blkproc(encodedFrame(:,:,j),[8,8],'idct2');
                 end
-                %IDCT anchor frame
-                for j = 1:3
-                    anchor(:,:,j) = blkproc(anchorFrame(:,:,j),[8,8],'idct2');
-                end
+%                 %IDCT anchor frame
+%                 for j = 1:3
+%                     anchor(:,:,j) = blkproc(anchorFrame(:,:,j),[8,8],'idct2');
+%                 end
                 %Rebuild the B Frame
                 for j = 1:3
-                    decodedFrame(:,:,j) = rebuild(anchor(:,:,j), errorFrame(:,:,j), motionVectors(:,:,j));
+                    decodedFrame(:,:,j) = rebuild(anchorFrame(:,:,j), errorFrame(:,:,j), motionVectors(:,:,j));
                 end
             else
                 error('Need Anchor and Motion Vector arguments for P frame');

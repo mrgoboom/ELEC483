@@ -1,6 +1,6 @@
 function encodeVideo( in_filename )
 %Encodes a video using the block matching algorithm in ebma.m
-    %tic;
+    tic;
     R = 8;
     
     %JPEG standard quantization matrix
@@ -28,7 +28,7 @@ function encodeVideo( in_filename )
     end
     v = VideoReader(in_filename);
     i = 1;
-    algTime = [];
+    %algTime = [];
     while hasFrame(v)
         frame = readFrame(v);
         for j = 1:3
@@ -44,13 +44,13 @@ function encodeVideo( in_filename )
                     %B frame saved for future processing
                     bFrame(:,:,j) = frame(:,:,j);
                 case 3
-                    tic;
+                    %tic;
                     [motion(:,:,j),pframe] = diamondSearch(anchorFrame(:,:,j), frame(:,:,j), R);
-                    algTime = [algTime, toc];
+                    %algTime = [algTime, toc];
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
-                    frame(:,:,j) = pframe;
+                    %frame(:,:,j) = pframe;
                     %push frame to output
-                    [errorb(:,:,j), motionb(:,:,j)] = processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), frame(:,:,j), q, R, fileName);
+                    [errorb(:,:,j), motionb(:,:,j)] = processBFrame(bFrame(:,:,j), anchorFrame(:,:,j), pframe, q, R, fileName);
                     %DCT and Quantization
                     %write P frame error to file
                     frame_q(:,:,j) = blkproc(double(error(:,:,j)),[8,8],'round(dct2(x)./P1).*P1',q);
@@ -65,9 +65,9 @@ function encodeVideo( in_filename )
                     %B frame saved for future processing
                     bFrame(:,:,j) = frame(:,:,j);
                 case 5
-                    tic;
+                    %tic;
                     [motion(:,:,j),pframe] = diamondSearch(anchorFrame(:,:,j), frame(:,:,j), R);
-                    algTime = [algTime, toc];
+                    %algTime = [algTime, toc];
                     error(:,:,j) = abs(double(pframe)-double(frame(:,:,j)));
                     frame(:,:,j) = pframe;
                     %push frame to output
@@ -96,14 +96,14 @@ function encodeVideo( in_filename )
         switch(i) %IBPBPIBPBPI...
             case 1
                 %I Frame
-                decodeVideo(frame_q, decodedVideo, 'I'); 
-                anchor = frame_q;
+                anchor = decodeVideo(frame_q, decodedVideo, 'I'); 
+                %anchor = frame_q;
             case 3
                 %B Frame
                 decodeVideo(errorb, decodedVideo, 'B', anchor, motionb);
                 %P Frame
-                decodeVideo(frame_q, decodedVideo, 'P', anchor, motion);
-                anchor = frame_q;
+                anchor = decodeVideo(frame_q, decodedVideo, 'P', anchor, motion);
+                %anchor = frame_q;
             case 5
                 %B Frame
                 decodeVideo(errorb, decodedVideo, 'B', anchor, motionb);
@@ -118,8 +118,8 @@ function encodeVideo( in_filename )
         end
     end
     close(decodedVideo);
-    %toc
-    mean(algTime)
+    toc
+    %mean(algTime)
 end
 
 function [frame_q, motion] = processBFrame(bFrame, bAnchor, aAnchor, q, R, file_name)
